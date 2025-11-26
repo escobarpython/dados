@@ -3,9 +3,9 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="Análise de internações", layout="wide")
+st.set_page_config(page_title="Análise de Pneumonia", layout="wide")
 
-st.title("Análise de internações por pneumonia")
+st.title("Análise dos Casos de Pneumonia de 2007  -  2023 ")
 
 arquivo = st.file_uploader("Envie o arquivo pneumonia.csv", type=["csv"])
 
@@ -20,7 +20,7 @@ if arquivo is not None:
     faltantes = [c for c in colunas_esperadas if c not in df.columns]
 
     if faltantes:
-        st.error(f"As seguintes colunas obrigatórias não foram encontradas no arquivo: {faltantes}")
+        st.error(f"erro: nao há os arquivos necessarios: {faltantes}")
     else:
         df["IDADE"] = pd.to_numeric(df["IDADE"], errors="coerce")
         df["obito"] = pd.to_numeric(df["obito"], errors="coerce")
@@ -156,21 +156,17 @@ if arquivo is not None:
             df_dt["ano"] = df_dt["DT_INTER"].dt.year
             df_dt["mes"] = df_dt["DT_INTER"].dt.month
 
-            # Nomes dos meses
+          
             meses_nomes = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
                           "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
-            # Anos disponíveis
             anos_disponiveis = sorted(df_dt["ano"].unique())
             
-            # Criar um heatmap para cada ano
             for ano in anos_disponiveis:
                 df_ano = df_dt[df_dt["ano"] == ano].copy()
                 
-                # Agrupar casos por mês
                 casos_por_mes = df_ano.groupby("mes").size().reset_index(name="casos")
                 
-                # Criar DataFrame completo com todos os meses (1-12)
                 df_completo = pd.DataFrame({"mes": range(1, 13)})
                 df_completo = df_completo.merge(casos_por_mes, on="mes", how="left")
                 df_completo["casos"] = df_completo["casos"].fillna(0)
