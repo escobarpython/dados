@@ -35,8 +35,8 @@ if arquivo is not None:
 
         df_relacao = pd.merge(df_obitos, df_dias, on="IDADE", how="inner")
 
-        df_val_idade = df.groupby("IDADE")["VAL_TOT"].sum().reset_index()
-        df_val_dias = df.groupby("DIAS_PERM")["VAL_TOT"].sum().reset_index()
+        df_val_idade = df.groupby("IDADE")["VAL_TOT"].mean().reset_index()
+        df_val_dias = df.groupby("DIAS_PERM")["VAL_TOT"].mean().reset_index()
 
         st.subheader("Óbitos por idade e dias de permanência médios por idade")
 
@@ -133,7 +133,7 @@ if arquivo is not None:
                 df_val_idade,
                 x="IDADE",
                 y="VAL_TOT",
-                title="VAL_TOT por idade"
+                title="VAL_TOT médio por idade"
             )
             st.plotly_chart(fig_val_idade, use_container_width=True)
 
@@ -142,11 +142,11 @@ if arquivo is not None:
                 df_val_dias,
                 x="DIAS_PERM",
                 y="VAL_TOT",
-                title="VAL_TOT por dias de permanência"
+                title="VAL_TOT médio por dias de permanência"
             )
             st.plotly_chart(fig_val_dias, use_container_width=True)
 
-        st.subheader("Heatmap de casos por dia da semana e mês (2007-2023)")
+        st.subheader("Heatmap de casos por mês (2007-2023)")
 
         if "DT_INTER" in df.columns:
             df_dt = df.copy()
@@ -155,15 +155,10 @@ if arquivo is not None:
 
             df_dt["ano"] = df_dt["DT_INTER"].dt.year
             df_dt["mes"] = df_dt["DT_INTER"].dt.month
-            df_dt["dia_semana"] = df_dt["DT_INTER"].dt.dayofweek  # 0=Mon, 6=Sun
-            df_dt["dia_mes"] = df_dt["DT_INTER"].dt.day
 
-            # Nomes dos dias da semana
-            dias_semana_nomes = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-            
             # Nomes dos meses
-            meses_nomes = ["January", "February", "March", "April", "May", "June", 
-                          "July", "August", "September", "October", "November", "December"]
+            meses_nomes = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
             # Anos disponíveis
             anos_disponiveis = sorted(df_dt["ano"].unique())
@@ -172,86 +167,39 @@ if arquivo is not None:
             for ano in anos_disponiveis:
                 df_ano = df_dt[df_dt["ano"] == ano].copy()
                 
-                # Criar matriz de heatmap (7 dias x ~365 dias)
-                # Agrupar por data completa
-                casos_por_data = df_ano.groupby("DT_INTER").size().reset_index(name="casos")
+                # Agrupar casos por mês
+                casos_por_mes = df_ano.groupby("mes").size().reset_index(name="casos")
                 
-                # Criar todas as datas do ano
-                data_inicio = pd.Timestamp(f"{ano}-01-01")
-                data_fim = pd.Timestamp(f"{ano}-12-31")
-                todas_datas = pd.date_range(start=data_inicio, end=data_fim, freq="D")
-                
-                # Criar DataFrame completo
-                df_completo = pd.DataFrame({"DT_INTER": todas_datas})
-                df_completo = df_completo.merge(casos_por_data, on="DT_INTER", how="left")
+                # Criar DataFrame completo com todos os meses (1-12)
+                df_completo = pd.DataFrame({"mes": range(1, 13)})
+                df_completo = df_completo.merge(casos_por_mes, on="mes", how="left")
                 df_completo["casos"] = df_completo["casos"].fillna(0)
-                
-                df_completo["dia_semana"] = df_completo["DT_INTER"].dt.dayofweek
-                df_completo["semana_ano"] = df_completo["DT_INTER"].dt.isocalendar().week
-                df_completo["mes"] = df_completo["DT_INTER"].dt.month
-                
-                # Criar matriz 7x52 (dia da semana x semana do ano)
-                matriz_heat = df_completo.pivot_table(
-                    index="dia_semana",
-                    columns="semana_ano",
-                    values="casos",
-                    fill_value=0
-                )
-                
-                # Criar labels para os meses (aproximadamente)
-                semanas_por_mes = df_completo.groupby("mes")["semana_ano"].first().to_dict()
+                df_completo["mes_nome"] = df_completo["mes"].apply(lambda x: meses_nomes[x-1])
                 
                 # Criar figura com plotly
                 fig_heat = go.Figure(data=go.Heatmap(
-                    z=matriz_heat.values,
-                    x=list(range(1, matriz_heat.shape[1] + 1)),
-                    y=dias_semana_nomes,
+                    z=[df_completo["casos"].values],  # Uma única linha
+                    x=df_completo["mes_nome"],
+                    y=[""],
                     colorscale="Greens",
                     showscale=True,
                     hoverongaps=False,
-                    hovertemplate="Semana: %{x}<br>Dia: %{y}<br>Casos: %{z}<extra></extra>"
+                    hovertemplate="Mês: %{x}<br>Casos: %{z}<extra></extra>",
+                    colorbar=dict(title="Casos")
                 ))
-                
-                # Adicionar linhas verticais para separar os meses
-                shapes = []
-                for mes, semana in semanas_por_mes.items():
-                    if semana > 1:
-                        shapes.append(dict(
-                            type="line",
-                            x0=semana - 0.5,
-                            x1=semana - 0.5,
-                            y0=-0.5,
-                            y1=6.5,
-                            line=dict(color="white", width=2)
-                        ))
-                
-                # Criar annotations para os meses
-                annotations = []
-                for mes, semana in semanas_por_mes.items():
-                    annotations.append(dict(
-                        x=semana + 2,
-                        y=-1,
-                        text=meses_nomes[mes - 1],
-                        showarrow=False,
-                        xanchor="left",
-                        yanchor="top"
-                    ))
                 
                 fig_heat.update_layout(
                     title=f"Casos de Pneumonia - {ano}",
                     xaxis=dict(
                         title="",
-                        showticklabels=False,
                         side="bottom"
                     ),
                     yaxis=dict(
                         title="",
-                        autorange="reversed"
+                        showticklabels=False
                     ),
-                    shapes=shapes,
-                    annotations=annotations,
-                    height=250,
-                    margin=dict(l=50, r=50, t=50, b=80)
+                    height=150,
+                    margin=dict(l=50, r=50, t=50, b=50)
                 )
                 
                 st.plotly_chart(fig_heat, use_container_width=True)
