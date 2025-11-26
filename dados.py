@@ -146,7 +146,7 @@ if arquivo is not None:
             )
             st.plotly_chart(fig_val_dias, use_container_width=True)
 
-            st.subheader("Heatmap da quantidade de casos por mês, com anos separados")
+            st.subheader("Heatmap da quantidade de casos por mês ao longo dos anos")
 
         if "DT_INTER" in df.columns:
             df_dt = df.copy()
@@ -159,36 +159,42 @@ if arquivo is not None:
             casos_mes = df_dt.groupby(["ano", "mes"]).size().reset_index(name="casos")
 
             meses_label = {
-                1: "Jan",
-                2: "Fev",
-                3: "Mar",
-                4: "Abr",
-                5: "Mai",
-                6: "Jun",
-                7: "Jul",
-                8: "Ago",
-                9: "Set",
-                10: "Out",
-                11: "Nov",
-                12: "Dez"
+                1: "JAN",
+                2: "FEV",
+                3: "MAR",
+                4: "ABR",
+                5: "MAI",
+                6: "JUN",
+                7: "JUL",
+                8: "AGO",
+                9: "SET",
+                10: "OUT",
+                11: "NOV",
+                12: "DEZ"
             }
+
             casos_mes["mes_nome"] = casos_mes["mes"].map(meses_label)
+            casos_mes["mes_ano"] = casos_mes["mes_nome"] + casos_mes["ano"].astype(str)
 
-            fig_heat_mes = px.density_heatmap(
-                casos_mes,
-                x="mes_nome",
-                y="ano",
-                z="casos",
+            casos_mes = casos_mes.sort_values(["ano", "mes"])
+
+            valores = [casos_mes["casos"].values]
+            labels_x = casos_mes["mes_ano"].tolist()
+
+            fig_heat_grande = px.imshow(
+                valores,
+                x=labels_x,
+                y=[""],
+                aspect="auto",
+                labels=dict(x="mês e ano", y="", color="quantidade de casos"),
                 color_continuous_scale="Greens",
-                title="Heatmap de casos por mês e ano"
+                title="Heatmap de casos por mês de cada ano"
             )
 
-            fig_heat_mes.update_xaxes(
-                categoryorder="array",
-                categoryarray=["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
-            )
+            fig_heat_grande.update_xaxes(tickangle=90)
 
-            st.plotly_chart(fig_heat_mes, use_container_width=True)
+            st.plotly_chart(fig_heat_grande, use_container_width=True)
 
         else:
-            st.warning("A coluna DT_INTER não foi encontrada no arquivo. O heatmap por mês não pôde ser gerado.")
+            st.warning("A coluna DT_INTER não foi encontrada no arquivo. O heatmap por mês e ano não pôde ser gerado.")
+
