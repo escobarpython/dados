@@ -60,7 +60,7 @@ if arquivo is not None:
             )
             st.plotly_chart(fig_dias, use_container_width=True)
 
-        st.subheader("Gráfico de Dispersão dos óbitos e dias de permanência por idade")
+        st.subheader("Dispersão dos óbitos e dias de permanência por idade")
 
         col3, col4 = st.columns(2)
 
@@ -69,7 +69,7 @@ if arquivo is not None:
                 df_obitos,
                 x="IDADE",
                 y="obito",
-                title="Gráfico de Dispersão de óbitos por idade"
+                title="Dispersão de óbitos por idade"
             )
             st.plotly_chart(fig_obitos_disp, use_container_width=True)
 
@@ -118,7 +118,7 @@ if arquivo is not None:
             name="dias de permanência (média)"
         ))
         fig_disp.update_layout(
-            title="Gráfico de Dispersão entre óbitos e dias de permanência por idade",
+            title="Dispersão entre óbitos e dias de permanência por idade",
             xaxis_title="idade",
             yaxis_title="valor"
         )
@@ -146,7 +146,7 @@ if arquivo is not None:
             )
             st.plotly_chart(fig_val_dias, use_container_width=True)
 
-        st.subheader("Heatmap de quantidade de casos por época do ano")
+        st.subheader("Heatmap da quantidade de casos por época do ano, com anos separados")
 
         if "DT_INTER" in df.columns:
             df_dt = df.copy()
@@ -154,25 +154,44 @@ if arquivo is not None:
             df_dt = df_dt.dropna(subset=["DT_INTER"])
 
             df_dt["ano"] = df_dt["DT_INTER"].dt.year
-            df_dt["dia_ano"] = df_dt["DT_INTER"].dt.dayofyear
+            iso = df_dt["DT_INTER"].dt.isocalendar()
+            df_dt["semana"] = iso.week.astype(int)
+            df_dt["weekday"] = df_dt["DT_INTER"].dt.weekday
 
-            casos_por_dia = df_dt.groupby(["ano", "dia_ano"]).size().reset_index(name="casos")
+            mapa_dia = {
+                0: "Mon",
+                1: "Tue",
+                2: "Wed",
+                3: "Thu",
+                4: "Fri",
+                5: "Sat",
+                6: "Sun"
+            }
+            df_dt["weekday_nome"] = df_dt["weekday"].map(mapa_dia)
 
-            matriz_heat = casos_por_dia.pivot(
-                index="ano",
-                columns="dia_ano",
-                values="casos"
-            ).fillna(0)
+            casos_por_dia = df_dt.groupby(
+                ["ano", "semana", "weekday_nome"]
+            ).size().reset_index(name="casos")
 
-            fig_heat = px.imshow(
-                matriz_heat,
-                aspect="auto",
-                labels=dict(x="dia do ano", y="ano", color="quantidade de casos"),
-                title="Heatmap de casos por dia do ano e ano"
+            casos_por_dia = casos_por_dia.sort_values(["ano", "semana"])
+
+            fig_heat = px.density_heatmap(
+                casos_por_dia,
+                x="semana",
+                y="weekday_nome",
+                z="casos",
+                facet_row="ano",
+                color_continuous_scale="Greens",
+                title="Quantidade de casos por dia da semana e semana do ano, por ano"
+            )
+            fig_heat.update_yaxes(
+                categoryorder="array",
+                categoryarray=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
             )
             st.plotly_chart(fig_heat, use_container_width=True)
         else:
             st.warning("A coluna DT_INTER não foi encontrada no arquivo. O heatmap por época do ano não pôde ser gerado.")
 else:
     st.info("Envie o arquivo pneumonia.csv para iniciar a análise.")
+
 
