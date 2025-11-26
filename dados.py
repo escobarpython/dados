@@ -60,7 +60,7 @@ if arquivo is not None:
             )
             st.plotly_chart(fig_dias, use_container_width=True)
 
-        st.subheader("Dispersão dos óbitos e dias de permanência por idade")
+        st.subheader("Gráfico de Dispersão dos óbitos e dias de permanência por idade")
 
         col3, col4 = st.columns(2)
 
@@ -69,7 +69,7 @@ if arquivo is not None:
                 df_obitos,
                 x="IDADE",
                 y="obito",
-                title="Dispersão de óbitos por idade"
+                title="Gráfico de Dispersão de óbitos por idade"
             )
             st.plotly_chart(fig_obitos_disp, use_container_width=True)
 
@@ -118,7 +118,7 @@ if arquivo is not None:
             name="dias de permanência (média)"
         ))
         fig_disp.update_layout(
-            title="Dispersão entre óbitos e dias de permanência por idade",
+            title="Gráfico de Dispersão entre óbitos e dias de permanência por idade",
             xaxis_title="idade",
             yaxis_title="valor"
         )
@@ -145,5 +145,34 @@ if arquivo is not None:
                 title="VAL_TOT por dias de permanência"
             )
             st.plotly_chart(fig_val_dias, use_container_width=True)
+
+        st.subheader("Heatmap de quantidade de casos por época do ano")
+
+        if "DT_INTER" in df.columns:
+            df_dt = df.copy()
+            df_dt["DT_INTER"] = pd.to_datetime(df_dt["DT_INTER"], errors="coerce")
+            df_dt = df_dt.dropna(subset=["DT_INTER"])
+
+            df_dt["ano"] = df_dt["DT_INTER"].dt.year
+            df_dt["dia_ano"] = df_dt["DT_INTER"].dt.dayofyear
+
+            casos_por_dia = df_dt.groupby(["ano", "dia_ano"]).size().reset_index(name="casos")
+
+            matriz_heat = casos_por_dia.pivot(
+                index="ano",
+                columns="dia_ano",
+                values="casos"
+            ).fillna(0)
+
+            fig_heat = px.imshow(
+                matriz_heat,
+                aspect="auto",
+                labels=dict(x="dia do ano", y="ano", color="quantidade de casos"),
+                title="Heatmap de casos por dia do ano e ano"
+            )
+            st.plotly_chart(fig_heat, use_container_width=True)
+        else:
+            st.warning("A coluna DT_INTER não foi encontrada no arquivo. O heatmap por época do ano não pôde ser gerado.")
 else:
     st.info("Envie o arquivo pneumonia.csv para iniciar a análise.")
+
