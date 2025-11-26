@@ -146,7 +146,7 @@ if arquivo is not None:
             )
             st.plotly_chart(fig_val_dias, use_container_width=True)
 
-        st.subheader("Heatmap da quantidade de casos por época do ano, com anos separados")
+               st.subheader("Heatmap da quantidade de casos por mês, com anos separados")
 
         if "DT_INTER" in df.columns:
             df_dt = df.copy()
@@ -154,44 +154,41 @@ if arquivo is not None:
             df_dt = df_dt.dropna(subset=["DT_INTER"])
 
             df_dt["ano"] = df_dt["DT_INTER"].dt.year
-            iso = df_dt["DT_INTER"].dt.isocalendar()
-            df_dt["semana"] = iso.week.astype(int)
-            df_dt["weekday"] = df_dt["DT_INTER"].dt.weekday
+            df_dt["mes"] = df_dt["DT_INTER"].dt.month
 
-            mapa_dia = {
-                0: "Mon",
-                1: "Tue",
-                2: "Wed",
-                3: "Thu",
-                4: "Fri",
-                5: "Sat",
-                6: "Sun"
+            casos_mes = df_dt.groupby(["ano", "mes"]).size().reset_index(name="casos")
+
+            meses_label = {
+                1: "Jan",
+                2: "Fev",
+                3: "Mar",
+                4: "Abr",
+                5: "Mai",
+                6: "Jun",
+                7: "Jul",
+                8: "Ago",
+                9: "Set",
+                10: "Out",
+                11: "Nov",
+                12: "Dez"
             }
-            df_dt["weekday_nome"] = df_dt["weekday"].map(mapa_dia)
+            casos_mes["mes_nome"] = casos_mes["mes"].map(meses_label)
 
-            casos_por_dia = df_dt.groupby(
-                ["ano", "semana", "weekday_nome"]
-            ).size().reset_index(name="casos")
-
-            casos_por_dia = casos_por_dia.sort_values(["ano", "semana"])
-
-            fig_heat = px.density_heatmap(
-                casos_por_dia,
-                x="semana",
-                y="weekday_nome",
+            fig_heat_mes = px.density_heatmap(
+                casos_mes,
+                x="mes_nome",
+                y="ano",
                 z="casos",
-                facet_row="ano",
                 color_continuous_scale="Greens",
-                title="Quantidade de casos por dia da semana e semana do ano, por ano"
+                title="Heatmap de casos por mês e ano"
             )
-            fig_heat.update_yaxes(
+
+            fig_heat_mes.update_xaxes(
                 categoryorder="array",
-                categoryarray=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+                categoryarray=["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
             )
-            st.plotly_chart(fig_heat, use_container_width=True)
+
+            st.plotly_chart(fig_heat_mes, use_container_width=True)
+
         else:
-            st.warning("A coluna DT_INTER não foi encontrada no arquivo. O heatmap por época do ano não pôde ser gerado.")
-else:
-    st.info("Envie o arquivo pneumonia.csv para iniciar a análise.")
-
-
+            st.warning("A coluna DT_INTER não foi encontrada no arquivo. O heatmap por mês não pôde ser gerado.")
