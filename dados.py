@@ -146,7 +146,7 @@ if arquivo is not None:
             )
             st.plotly_chart(fig_val_dias, use_container_width=True)
 
-               st.subheader("Heatmap da quantidade de casos por mês, com anos separados")
+            st.subheader("Heatmap da quantidade de casos por mês, com anos separados")
 
         if "DT_INTER" in df.columns:
             df_dt = df.copy()
