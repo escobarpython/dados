@@ -20,7 +20,7 @@ if arquivo is not None:
     faltantes = [c for c in colunas_esperadas if c not in df.columns]
 
     if faltantes:
-        st.error(f"erro: nao há os arquivos necessarios: {faltantes}")
+        st.error(f"erro: nao há os tabelas necessarios: {faltantes}")
     else:
         df["IDADE"] = pd.to_numeric(df["IDADE"], errors="coerce")
         df["obito"] = pd.to_numeric(df["obito"], errors="coerce")
@@ -124,7 +124,7 @@ if arquivo is not None:
         )
         st.plotly_chart(fig_disp, use_container_width=True)
 
-        st.subheader("VAL_TOT por idade e por dias de permanência")
+        st.subheader("Valor total por idade e por dias de permanência")
 
         col5, col6 = st.columns(2)
 
@@ -133,7 +133,7 @@ if arquivo is not None:
                 df_val_idade,
                 x="IDADE",
                 y="VAL_TOT",
-                title="VAL_TOT médio por idade"
+                title="Valor total médio por idade"
             )
             st.plotly_chart(fig_val_idade, use_container_width=True)
 
@@ -142,9 +142,11 @@ if arquivo is not None:
                 df_val_dias,
                 x="DIAS_PERM",
                 y="VAL_TOT",
-                title="VAL_TOT médio por dias de permanência"
+                title="Valor total médio por dias de permanência"
             )
             st.plotly_chart(fig_val_dias, use_container_width=True)
+
+        # a partir daqui, nao consegui fazer, entao vou pedir pro claude code ajudar no heatmap
 
         st.subheader("Heatmap de casos por mês (2007-2023)")
 
