@@ -3,9 +3,9 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="Análise de Pneumonia", layout="wide")
+st.set_page_config(page_title="Análise de Dados de Pneumonia", layout="wide")
 
-st.title("Análise dos Casos de Pneumonia de 2007  -  2023 ")
+st.title("Análise dos Dados de Pneumonia de 2007  -  2023 ")
 
 arquivo = st.file_uploader("Envie o arquivo pneumonia.csv", type=["csv"])
 
@@ -37,6 +37,8 @@ if arquivo is not None:
 
         df_val_idade = df.groupby("IDADE")["VAL_TOT"].mean().reset_index()
         df_val_dias = df.groupby("DIAS_PERM")["VAL_TOT"].mean().reset_index()
+
+        # botar aqui os graficos (embaixo disso)
 
         st.subheader("Óbitos por idade e dias de permanência médios por idade")
 
