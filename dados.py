@@ -52,7 +52,7 @@ if arquivo is not None:
             )
             st.plotly_chart(fig_obitos_disp, use_container_width=True)
 
-        st.subheader("Heatmap da quantidade de casos por mês e ano")
+                st.subheader("Heatmap da quantidade de casos por mês e ano (cada ano em uma linha)")
 
         if "DT_INTER" in df.columns:
             df_dt = df.copy()
@@ -94,12 +94,16 @@ if arquivo is not None:
                 aspect="auto",
                 labels=dict(x="mês", y="ano", color="quantidade de casos"),
                 color_continuous_scale="Greens",
-                title="Heatmap de casos por mês e ano"
+                title="Heatmap de casos por mês e ano (cada ano em uma linha)"
             )
 
+            fig_heat.update_xaxes(side="top")
+            fig_heat.update_yaxes(autorange="reversed")
+
             st.plotly_chart(fig_heat, use_container_width=True)
+
         else:
-            st.warning("A coluna DT_INTER não foi encontrada no arquivo. O heatmap por mês e ano não pôde ser gerado.")
+            st.warning("A coluna DT_INTER não foi encontrada no arquivo. O heatmap não pôde ser gerado.")
 
         st.subheader("Pirâmide etária de número de casos por sexo (faixas de 5 anos)")
 
