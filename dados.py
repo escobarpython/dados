@@ -52,55 +52,174 @@ if arquivo is not None:
             )
             st.plotly_chart(fig_obitos_disp, use_container_width=True)
 
-        st.subheader("Heatmap da quantidade de casos por mês e ano")
 
-        df_dt = df.copy()
-        df_dt["DT_INTER"] = pd.to_datetime(df_dt["DT_INTER"], errors="coerce")
-        df_dt = df_dt.dropna(subset=["DT_INTER"])
+    st.subheader("Óbitos por idade e dias de permanência médios por idade")
 
-        df_dt["ano"] = df_dt["DT_INTER"].dt.year
-        df_dt["mes"] = df_dt["DT_INTER"].dt.month
+        col1, col2 = st.columns(2)
 
-        casos_mes = df_dt.groupby(["ano", "mes"]).size().reset_index(name="casos")
+        with col1:
+            fig_obitos = px.line(
+                df_obitos,
+                x="IDADE",
+                y="obito",
+                title="Quantidade de óbitos por idade"
+            )
+            st.plotly_chart(fig_obitos, use_container_width=True)
 
-        meses_label = {
-            1: "JAN",
-            2: "FEV",
-            3: "MAR",
-            4: "ABR",
-            5: "MAI",
-            6: "JUN",
-            7: "JUL",
-            8: "AGO",
-            9: "SET",
-            10: "OUT",
-            11: "NOV",
-            12: "DEZ"
-        }
+        with col2:
+            fig_dias = px.line(
+                df_dias,
+                x="IDADE",
+                y="DIAS_PERM",
+                title="Dias de permanência médios por idade"
+            )
+            st.plotly_chart(fig_dias, use_container_width=True)
 
-        casos_mes["mes_nome"] = casos_mes["mes"].map(meses_label)
+        st.subheader("Dispersão dos óbitos e dias de permanência por idade")
 
-        matriz = casos_mes.pivot(index="ano", columns="mes_nome", values="casos")
+        col3, col4 = st.columns(2)
 
-        ordem_meses = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"]
-        matriz = matriz.reindex(columns=ordem_meses)
-        matriz = matriz.fillna(0)
+        with col3:
+            fig_obitos_disp = px.scatter(
+                df_obitos,
+                x="IDADE",
+                y="obito",
+                title="Dispersão de óbitos por idade"
+            )
+            st.plotly_chart(fig_obitos_disp, use_container_width=True)
 
-        fig_heat = px.imshow(
-            matriz,
-            x=ordem_meses,
-            y=matriz.index.astype(int),
-            aspect="auto",
-            labels=dict(x="mês", y="ano", color="quantidade de casos"),
-            color_continuous_scale="Greens",
-            title="Heatmap de casos por mês e ano (cada ano em uma linha)"
+        with col4:
+            fig_dias_disp = px.scatter(
+                df_dias,
+                x="IDADE",
+                y="DIAS_PERM",
+                title="Dispersão dos dias de permanência por idade"
+            )
+            st.plotly_chart(fig_dias_disp, use_container_width=True)
+
+        st.subheader("Relação entre óbitos e dias de permanência por idade")
+
+        fig_linhas = go.Figure()
+        fig_linhas.add_trace(go.Scatter(
+            x=df_relacao["IDADE"],
+            y=df_relacao["obito"],
+            mode="lines",
+            name="óbitos"
+        ))
+        fig_linhas.add_trace(go.Scatter(
+            x=df_relacao["IDADE"],
+            y=df_relacao["DIAS_PERM"],
+            mode="lines",
+            name="dias de permanência (média)"
+        ))
+        fig_linhas.update_layout(
+            title="Relação entre óbitos e dias de permanência por idade",
+            xaxis_title="idade",
+            yaxis_title="valor"
         )
+        st.plotly_chart(fig_linhas, use_container_width=True)
 
-        fig_heat.update_xaxes(side="top")
-        fig_heat.update_yaxes(autorange="reversed")
+        fig_disp = go.Figure()
+        fig_disp.add_trace(go.Scatter(
+            x=df_relacao["IDADE"],
+            y=df_relacao["obito"],
+            mode="markers",
+            name="óbitos"
+        ))
+        fig_disp.add_trace(go.Scatter(
+            x=df_relacao["IDADE"],
+            y=df_relacao["DIAS_PERM"],
+            mode="markers",
+            name="dias de permanência (média)"
+        ))
+        fig_disp.update_layout(
+            title="Dispersão entre óbitos e dias de permanência por idade",
+            xaxis_title="idade",
+            yaxis_title="valor"
+        )
+        st.plotly_chart(fig_disp, use_container_width=True)
 
-        st.plotly_chart(fig_heat, use_container_width=True)
+        st.subheader("Valor total por idade e por dias de permanência")
 
+        col5, col6 = st.columns(2)
+
+        with col5:
+            fig_val_idade = px.line(
+                df_val_idade,
+                x="IDADE",
+                y="VAL_TOT",
+                title="Valor total médio por idade"
+            )
+            st.plotly_chart(fig_val_idade, use_container_width=True)
+
+        with col6:
+            fig_val_dias = px.line(
+                df_val_dias,
+                x="DIAS_PERM",
+                y="VAL_TOT",
+                title="Valor total médio por dias de permanência"
+            )
+            st.plotly_chart(fig_val_dias, use_container_width=True)
+
+        # a partir daqui, nao consegui fazer, entao vou pedir pro claude code ajudar no heatmap
+
+        st.subheader("Heatmap de casos por mês (2007-2023)")
+
+        if "DT_INTER" in df.columns:
+            df_dt = df.copy()
+            df_dt["DT_INTER"] = pd.to_datetime(df_dt["DT_INTER"], errors="coerce")
+            df_dt = df_dt.dropna(subset=["DT_INTER"])
+
+            df_dt["ano"] = df_dt["DT_INTER"].dt.year
+            df_dt["mes"] = df_dt["DT_INTER"].dt.month
+
+          
+            meses_nomes = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+            anos_disponiveis = sorted(df_dt["ano"].unique())
+            
+            for ano in anos_disponiveis:
+                df_ano = df_dt[df_dt["ano"] == ano].copy()
+                
+                casos_por_mes = df_ano.groupby("mes").size().reset_index(name="casos")
+                
+                df_completo = pd.DataFrame({"mes": range(1, 13)})
+                df_completo = df_completo.merge(casos_por_mes, on="mes", how="left")
+                df_completo["casos"] = df_completo["casos"].fillna(0)
+                df_completo["mes_nome"] = df_completo["mes"].apply(lambda x: meses_nomes[x-1])
+                
+                # Criar figura com plotly
+                fig_heat = go.Figure(data=go.Heatmap(
+                    z=[df_completo["casos"].values],  # Uma única linha
+                    x=df_completo["mes_nome"],
+                    y=[""],
+                    colorscale="Greens",
+                    showscale=True,
+                    hoverongaps=False,
+                    hovertemplate="Mês: %{x}<br>Casos: %{z}<extra></extra>",
+                    colorbar=dict(title="Casos")
+                ))
+                
+                fig_heat.update_layout(
+                    title=f"Casos de Pneumonia - {ano}",
+                    xaxis=dict(
+                        title="",
+                        side="bottom"
+                    ),
+                    yaxis=dict(
+                        title="",
+                        showticklabels=False
+                    ),
+                    height=150,
+                    margin=dict(l=50, r=50, t=50, b=50)
+                )
+                
+                st.plotly_chart(fig_heat, use_container_width=True)
+
+        else:
+            st.warning("A coluna DT_INTER não foi encontrada no arquivo. O heatmap por ano não pôde ser gerado.")
+        
         st.subheader("Distribuição de casos e óbitos por raça")
 
         df_raca = df.copy()
