@@ -52,56 +52,64 @@ if arquivo is not None:
             )
             st.plotly_chart(fig_obitos_disp, use_container_width=True)
 
-        st.subheader("Heatmap da quantidade de casos por mês e ano")
+        st.subheader("Heatmap de casos por mês (2007-2023)")
 
-        df_dt = df.copy()
-        df_dt["DT_INTER"] = pd.to_datetime(df_dt["DT_INTER"], errors="coerce")
-        df_dt = df_dt.dropna(subset=["DT_INTER"])
+        if "DT_INTER" in df.columns:
+            df_dt = df.copy()
+            df_dt["DT_INTER"] = pd.to_datetime(df_dt["DT_INTER"], errors="coerce")
+            df_dt = df_dt.dropna(subset=["DT_INTER"])
 
-        df_dt["ano"] = df_dt["DT_INTER"].dt.year
-        df_dt["mes"] = df_dt["DT_INTER"].dt.month
+            df_dt["ano"] = df_dt["DT_INTER"].dt.year
+            df_dt["mes"] = df_dt["DT_INTER"].dt.month
 
-        casos_mes = df_dt.groupby(["ano", "mes"]).size().reset_index(name="casos")
+          
+            meses_nomes = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
-        meses_label = {
-            1: "JAN",
-            2: "FEV",
-            3: "MAR",
-            4: "ABR",
-            5: "MAI",
-            6: "JUN",
-            7: "JUL",
-            8: "AGO",
-            9: "SET",
-            10: "OUT",
-            11: "NOV",
-            12: "DEZ"
-        }
+            anos_disponiveis = sorted(df_dt["ano"].unique())
+            
+            for ano in anos_disponiveis:
+                df_ano = df_dt[df_dt["ano"] == ano].copy()
+                
+                casos_por_mes = df_ano.groupby("mes").size().reset_index(name="casos")
+                
+                df_completo = pd.DataFrame({"mes": range(1, 13)})
+                df_completo = df_completo.merge(casos_por_mes, on="mes", how="left")
+                df_completo["casos"] = df_completo["casos"].fillna(0)
+                df_completo["mes_nome"] = df_completo["mes"].apply(lambda x: meses_nomes[x-1])
+                
+                # Criar figura com plotly
+                fig_heat = go.Figure(data=go.Heatmap(
+                    z=[df_completo["casos"].values],  # Uma única linha
+                    x=df_completo["mes_nome"],
+                    y=[""],
+                    colorscale="Greens",
+                    showscale=True,
+                    hoverongaps=False,
+                    hovertemplate="Mês: %{x}<br>Casos: %{z}<extra></extra>",
+                    colorbar=dict(title="Casos")
+                ))
+                
+                fig_heat.update_layout(
+                    title=f"Casos de Pneumonia - {ano}",
+                    xaxis=dict(
+                        title="",
+                        side="bottom"
+                    ),
+                    yaxis=dict(
+                        title="",
+                        showticklabels=False
+                    ),
+                    height=150,
+                    margin=dict(l=50, r=50, t=50, b=50)
+                )
+                
+                st.plotly_chart(fig_heat, use_container_width=True)
 
-        casos_mes["mes_nome"] = casos_mes["mes"].map(meses_label)
+        else:
+            st.warning("A coluna DT_INTER não foi encontrada no arquivo. O heatmap por ano não pôde ser gerado.")
 
-        matriz = casos_mes.pivot(index="ano", columns="mes_nome", values="casos")
-
-        ordem_meses = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"]
-        matriz = matriz.reindex(columns=ordem_meses)
-        matriz = matriz.fillna(0)
-
-        fig_heat = px.imshow(
-            matriz,
-            x=ordem_meses,
-            y=matriz.index.astype(int),
-            aspect="auto",
-            labels=dict(x="mês", y="ano", color="quantidade de casos"),
-            color_continuous_scale="Greens",
-            title="Heatmap de casos por mês e ano (cada ano em uma linha)"
-        )
-
-        fig_heat.update_xaxes(side="top")
-        fig_heat.update_yaxes(autorange="reversed")
-
-        st.plotly_chart(fig_heat, use_container_width=True)
-
-        st.subheader("Pirâmide etária de casos por sexo (faixas de 5 anos)")
+        st.subheader("Pirâmide etária de casos por sexo")
 
         df_sexo = df.copy()
 
@@ -162,7 +170,7 @@ if arquivo is not None:
         )
 
         fig_piramide_total.update_layout(
-            title="Pirâmide etária de casos por sexo (faixas de 5 anos)",
+            title="Pirâmide etária de casos por sexo",
             barmode="overlay",
             xaxis_title="Número de casos",
             yaxis_title="Faixa etária"
@@ -170,7 +178,7 @@ if arquivo is not None:
 
         st.plotly_chart(fig_piramide_total, use_container_width=True)
 
-        st.subheader("Pirâmide etária de óbitos por sexo (faixas de 5 anos)")
+        st.subheader("Pirâmide etária de óbitos por sexo")
 
         df_obito_sexo = df_sexo[df_sexo["obito"] == 1].copy()
 
@@ -207,7 +215,7 @@ if arquivo is not None:
         )
 
         fig_piramide_obito.update_layout(
-            title="Pirâmide etária de óbitos por sexo (faixas de 5 anos)",
+            title="Pirâmide etária de óbitos por sexo",
             barmode="overlay",
             xaxis_title="Número de óbitos",
             yaxis_title="Faixa etária"
