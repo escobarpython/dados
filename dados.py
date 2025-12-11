@@ -1,5 +1,6 @@
 import streamlit as st
-import pandas as pdwimport plotly.express as px
+import pandas as pd
+import plotly.express as px
 import plotly.graph_objects as go
 
 st.set_page_config(page_title="Análise de internações", layout="wide")
@@ -15,7 +16,7 @@ if arquivo is not None:
     st.write("Linhas no conjunto de dados:", len(df))
     st.dataframe(df.head())
 
-    colunas_esperadas = ["IDADE", "obito", "SEXO", "DT_INTER"]
+    colunas_esperadas = ["IDADE", "obito", "SEXO", "DT_INTER", "RACA_COR"]
     faltantes = [c for c in colunas_esperadas if c not in df.columns]
 
     if faltantes:
@@ -100,7 +101,62 @@ if arquivo is not None:
 
         st.plotly_chart(fig_heat, use_container_width=True)
 
-        st.subheader("Pirâmide etária de casos por sexo (faixas de 5 anos)")
+        st.subheader("Distribuição de casos e óbitos por raça")
+
+        df_raca = df.copy()
+        df_raca["RACA_DESC"] = (
+            df_raca["RACA_COR"]
+            .astype(str)
+            .str.zfill(2)
+            .map({
+                "01": "Branca",
+                "02": "Preta",
+                "03": "Parda",
+                "04": "Amarela",
+                "05": "Indígena",
+                "99": "Sem informação"
+            })
+        )
+
+        df_raca = df_raca.dropna(subset=["RACA_DESC"])
+
+        casos_por_raca = (
+            df_raca
+            .groupby("RACA_DESC")
+            .size()
+            .reset_index(name="casos")
+        )
+
+        obitos_por_raca = (
+            df_raca[df_raca["obito"] == 1]
+            .groupby("RACA_DESC")
+            .size()
+            .reset_index(name="obitos")
+        )
+
+        col_r1, col_r2 = st.columns(2)
+
+        with col_r1:
+            fig_casos_raca = px.bar(
+                casos_por_raca,
+                x="RACA_DESC",
+                y="casos",
+                title="Número de casos por raça"
+            )
+            fig_casos_raca.update_layout(xaxis_title="Raça", yaxis_title="Número de casos")
+            st.plotly_chart(fig_casos_raca, use_container_width=True)
+
+        with col_r2:
+            fig_obitos_raca = px.bar(
+                obitos_por_raca,
+                x="RACA_DESC",
+                y="obitos",
+                title="Número de óbitos por raça"
+            )
+            fig_obitos_raca.update_layout(xaxis_title="Raça", yaxis_title="Número de óbitos")
+            st.plotly_chart(fig_obitos_raca, use_container_width=True)
+
+        st.subheader("Pirâmide etária de casos por sexo ")
 
         df_sexo = df.copy()
 
@@ -169,7 +225,7 @@ if arquivo is not None:
 
         st.plotly_chart(fig_piramide_total, use_container_width=True)
 
-        st.subheader("Pirâmide etária de óbitos por sexo")
+        st.subheader("Pirâmide etária de óbitos por sexo ")
 
         df_obito_sexo = df_sexo[df_sexo["obito"] == 1].copy()
 
@@ -206,7 +262,7 @@ if arquivo is not None:
         )
 
         fig_piramide_obito.update_layout(
-            title="Pirâmide etária de óbitos por sexo (faixas de 5 anos)",
+            title="Pirâmide etária de óbitos por sexo",
             barmode="overlay",
             xaxis_title="Número de óbitos",
             yaxis_title="Faixa etária"
@@ -216,3 +272,4 @@ if arquivo is not None:
 
 else:
     st.info("Envie o arquivo pneumonia.csv para iniciar a análise.")
+
