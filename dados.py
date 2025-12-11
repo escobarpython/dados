@@ -16,7 +16,7 @@ if arquivo is not None:
     st.write("Linhas no conjunto de dados:", len(df))
     st.dataframe(df.head())
 
-    colunas_esperadas = ["IDADE", "obito", "SEXO"]
+    colunas_esperadas = ["IDADE", "obito", "SEXO", "DT_INTER"]
     faltantes = [c for c in colunas_esperadas if c not in df.columns]
 
     if faltantes:
@@ -52,60 +52,56 @@ if arquivo is not None:
             )
             st.plotly_chart(fig_obitos_disp, use_container_width=True)
 
-                st.subheader("Heatmap da quantidade de casos por mês e ano (cada ano em uma linha)")
+        st.subheader("Heatmap da quantidade de casos por mês e ano")
 
-        if "DT_INTER" in df.columns:
-            df_dt = df.copy()
-            df_dt["DT_INTER"] = pd.to_datetime(df_dt["DT_INTER"], errors="coerce")
-            df_dt = df_dt.dropna(subset=["DT_INTER"])
+        df_dt = df.copy()
+        df_dt["DT_INTER"] = pd.to_datetime(df_dt["DT_INTER"], errors="coerce")
+        df_dt = df_dt.dropna(subset=["DT_INTER"])
 
-            df_dt["ano"] = df_dt["DT_INTER"].dt.year
-            df_dt["mes"] = df_dt["DT_INTER"].dt.month
+        df_dt["ano"] = df_dt["DT_INTER"].dt.year
+        df_dt["mes"] = df_dt["DT_INTER"].dt.month
 
-            casos_mes = df_dt.groupby(["ano", "mes"]).size().reset_index(name="casos")
+        casos_mes = df_dt.groupby(["ano", "mes"]).size().reset_index(name="casos")
 
-            meses_label = {
-                1: "JAN",
-                2: "FEV",
-                3: "MAR",
-                4: "ABR",
-                5: "MAI",
-                6: "JUN",
-                7: "JUL",
-                8: "AGO",
-                9: "SET",
-                10: "OUT",
-                11: "NOV",
-                12: "DEZ"
-            }
+        meses_label = {
+            1: "JAN",
+            2: "FEV",
+            3: "MAR",
+            4: "ABR",
+            5: "MAI",
+            6: "JUN",
+            7: "JUL",
+            8: "AGO",
+            9: "SET",
+            10: "OUT",
+            11: "NOV",
+            12: "DEZ"
+        }
 
-            casos_mes["mes_nome"] = casos_mes["mes"].map(meses_label)
+        casos_mes["mes_nome"] = casos_mes["mes"].map(meses_label)
 
-            matriz = casos_mes.pivot(index="ano", columns="mes_nome", values="casos")
+        matriz = casos_mes.pivot(index="ano", columns="mes_nome", values="casos")
 
-            ordem_meses = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"]
-            matriz = matriz.reindex(columns=ordem_meses)
-            matriz = matriz.fillna(0)
+        ordem_meses = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"]
+        matriz = matriz.reindex(columns=ordem_meses)
+        matriz = matriz.fillna(0)
 
-            fig_heat = px.imshow(
-                matriz,
-                x=ordem_meses,
-                y=matriz.index.astype(int),
-                aspect="auto",
-                labels=dict(x="mês", y="ano", color="quantidade de casos"),
-                color_continuous_scale="Greens",
-                title="Heatmap de casos por mês e ano (cada ano em uma linha)"
-            )
+        fig_heat = px.imshow(
+            matriz,
+            x=ordem_meses,
+            y=matriz.index.astype(int),
+            aspect="auto",
+            labels=dict(x="mês", y="ano", color="quantidade de casos"),
+            color_continuous_scale="Greens",
+            title="Heatmap de casos por mês e ano (cada ano em uma linha)"
+        )
 
-            fig_heat.update_xaxes(side="top")
-            fig_heat.update_yaxes(autorange="reversed")
+        fig_heat.update_xaxes(side="top")
+        fig_heat.update_yaxes(autorange="reversed")
 
-            st.plotly_chart(fig_heat, use_container_width=True)
+        st.plotly_chart(fig_heat, use_container_width=True)
 
-        else:
-            st.warning("A coluna DT_INTER não foi encontrada no arquivo. O heatmap não pôde ser gerado.")
-
-        st.subheader("Pirâmide etária de número de casos por sexo (faixas de 5 anos)")
+        st.subheader("Pirâmide etária de casos por sexo (faixas de 5 anos)")
 
         df_sexo = df.copy()
 
