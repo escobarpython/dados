@@ -53,15 +53,6 @@ if arquivo is not None:
             )
             st.plotly_chart(fig_obitos, use_container_width=True)
 
-        with col2:
-            fig_dias = px.line(
-                df_dias,
-                x="IDADE",
-                y="DIAS_PERM",
-                title="Dias de permanência médios por idade"
-            )
-            st.plotly_chart(fig_dias, use_container_width=True)
-
         st.subheader("Dispersão dos óbitos e dias de permanência por idade")
 
         col3, col4 = st.columns(2)
@@ -207,7 +198,7 @@ if arquivo is not None:
         else:
             st.warning("A coluna DT_INTER não foi encontrada no arquivo. O heatmap por ano não pôde ser gerado.")
 
-        st.subheader("Pirâmide etária de casos por sexo")
+               st.subheader("Pirâmide etária de número de casos por sexo (faixas de 5 anos)")
 
         if "SEXO" in df.columns:
             df_sexo = df.copy()
@@ -229,9 +220,16 @@ if arquivo is not None:
 
             df_sexo = df_sexo.dropna(subset=["IDADE", "SEXO_CAT"])
 
+            df_sexo["faixa"] = pd.cut(
+                df_sexo["IDADE"],
+                bins=list(range(0, 105, 5)) + [200],
+                labels=[f"{i}-{i+4}" for i in range(0, 100, 5)] + ["100+"],
+                right=False
+            )
+
             piramide = (
                 df_sexo
-                .groupby(["IDADE", "SEXO_CAT"])
+                .groupby(["faixa", "SEXO_CAT"])
                 .size()
                 .reset_index(name="casos")
             )
@@ -239,16 +237,13 @@ if arquivo is not None:
             piramide_homem = piramide[piramide["SEXO_CAT"] == "Homem"].copy()
             piramide_mulher = piramide[piramide["SEXO_CAT"] == "Mulher"].copy()
 
-            piramide_homem = piramide_homem.sort_values("IDADE")
-            piramide_mulher = piramide_mulher.sort_values("IDADE")
-
             piramide_homem["casos_neg"] = -piramide_homem["casos"]
 
             fig_piramide = go.Figure()
 
             fig_piramide.add_trace(
                 go.Bar(
-                    y=piramide_homem["IDADE"],
+                    y=piramide_homem["faixa"],
                     x=piramide_homem["casos_neg"],
                     name="Homem",
                     orientation="h"
@@ -257,7 +252,7 @@ if arquivo is not None:
 
             fig_piramide.add_trace(
                 go.Bar(
-                    y=piramide_mulher["IDADE"],
+                    y=piramide_mulher["faixa"],
                     x=piramide_mulher["casos"],
                     name="Mulher",
                     orientation="h"
@@ -265,20 +260,13 @@ if arquivo is not None:
             )
 
             fig_piramide.update_layout(
-                title="Pirâmide etária de número de casos por sexo",
+                title="Pirâmide etária de casos por sexo (faixas de 5 anos)",
                 barmode="overlay",
-                xaxis_title="Número de casos (valores negativos para homens)",
-                yaxis_title="Idade"
-            )
-
-            fig_piramide.update_xaxes(
-                tickvals=sorted(
-                    list(piramide_homem["casos_neg"].unique())
-                    + list(piramide_mulher["casos"].unique())
-                )
+                xaxis_title="Número de casos",
+                yaxis_title="Faixa etária"
             )
 
             st.plotly_chart(fig_piramide, use_container_width=True)
+
         else:
             st.warning("A coluna SEXO não foi encontrada no arquivo. A pirâmide etária não pôde ser gerada.")
-
