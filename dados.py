@@ -1,6 +1,5 @@
 import streamlit as st
-import pandas as pd
-import plotly.express as px
+import pandas as pdwimport plotly.express as px
 import plotly.graph_objects as go
 
 st.set_page_config(page_title="Análise de internações", layout="wide")
@@ -162,7 +161,7 @@ if arquivo is not None:
         )
 
         fig_piramide_total.update_layout(
-            title="Pirâmide etária de casos por sexo (faixas de 5 anos)",
+            title="Pirâmide etária de casos por sexo",
             barmode="overlay",
             xaxis_title="Número de casos",
             yaxis_title="Faixa etária"
@@ -170,7 +169,7 @@ if arquivo is not None:
 
         st.plotly_chart(fig_piramide_total, use_container_width=True)
 
-        st.subheader("Pirâmide etária de óbitos por sexo (faixas de 5 anos)")
+        st.subheader("Pirâmide etária de óbitos por sexo")
 
         df_obito_sexo = df_sexo[df_sexo["obito"] == 1].copy()
 
