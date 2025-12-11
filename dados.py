@@ -206,3 +206,79 @@ if arquivo is not None:
 
         else:
             st.warning("A coluna DT_INTER não foi encontrada no arquivo. O heatmap por ano não pôde ser gerado.")
+
+        st.subheader("Pirâmide etária de casos por sexo")
+
+        if "SEXO" in df.columns:
+            df_sexo = df.copy()
+
+            df_sexo["SEXO_CAT"] = (
+                df_sexo["SEXO"]
+                .astype(str)
+                .str.strip()
+                .str.upper()
+                .map({
+                    "M": "Homem",
+                    "MASCULINO": "Homem",
+                    "1": "Homem",
+                    "F": "Mulher",
+                    "FEMININO": "Mulher",
+                    "3": "Mulher"
+                })
+            )
+
+            df_sexo = df_sexo.dropna(subset=["IDADE", "SEXO_CAT"])
+
+            piramide = (
+                df_sexo
+                .groupby(["IDADE", "SEXO_CAT"])
+                .size()
+                .reset_index(name="casos")
+            )
+
+            piramide_homem = piramide[piramide["SEXO_CAT"] == "Homem"].copy()
+            piramide_mulher = piramide[piramide["SEXO_CAT"] == "Mulher"].copy()
+
+            piramide_homem = piramide_homem.sort_values("IDADE")
+            piramide_mulher = piramide_mulher.sort_values("IDADE")
+
+            piramide_homem["casos_neg"] = -piramide_homem["casos"]
+
+            fig_piramide = go.Figure()
+
+            fig_piramide.add_trace(
+                go.Bar(
+                    y=piramide_homem["IDADE"],
+                    x=piramide_homem["casos_neg"],
+                    name="Homem",
+                    orientation="h"
+                )
+            )
+
+            fig_piramide.add_trace(
+                go.Bar(
+                    y=piramide_mulher["IDADE"],
+                    x=piramide_mulher["casos"],
+                    name="Mulher",
+                    orientation="h"
+                )
+            )
+
+            fig_piramide.update_layout(
+                title="Pirâmide etária de número de casos por sexo",
+                barmode="overlay",
+                xaxis_title="Número de casos (valores negativos para homens)",
+                yaxis_title="Idade"
+            )
+
+            fig_piramide.update_xaxes(
+                tickvals=sorted(
+                    list(piramide_homem["casos_neg"].unique())
+                    + list(piramide_mulher["casos"].unique())
+                )
+            )
+
+            st.plotly_chart(fig_piramide, use_container_width=True)
+        else:
+            st.warning("A coluna SEXO não foi encontrada no arquivo. A pirâmide etária não pôde ser gerada.")
+
