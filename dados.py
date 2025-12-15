@@ -47,20 +47,26 @@ if arquivo is not None:
             st.plotly_chart(fig_obitos, use_container_width=True)
 
         with col2:
-            df_linha = df.dropna(subset=["IDADE", "obito"]).copy()
-            df_linha = df_linha.sort_values(["IDADE"])
-            df_linha["idx_idade"] = df_linha.groupby("IDADE").cumcount() + 1
+            df_obitos_pontos = df[df["obito"] == 1].copy()
+            df_obitos_pontos = df_obitos_pontos.sort_values("IDADE")
+            df_obitos_pontos["ordem"] = df_obitos_pontos.groupby("IDADE").cumcount() + 1
 
-            fig_obitos_linha_dados = px.line(
-                df_linha,
+            fig_obitos_pontos = px.scatter(
+                df_obitos_pontos,
                 x="IDADE",
-                y="idx_idade",
-                color="obito",
-                title="Distribuição de casos por idade usando todos os dados",
+                y="ordem",
+                title="Distribuição de óbitos por idade",
+                opacity=0.5,
                 template="plotly_white"
             )
-            fig_obitos_linha_dados.update_layout(height=650)
-            st.plotly_chart(fig_obitos_linha_dados, use_container_width=True)
+
+            fig_obitos_pontos.update_layout(
+                xaxis_title="Idade",
+                yaxis_title="Óbitos acumulados por idade",
+                height=650
+            )
+
+            st.plotly_chart(fig_obitos_pontos, use_container_width=True)
 
         st.subheader("Gráfico de barras por raça")
 
@@ -85,7 +91,11 @@ if arquivo is not None:
         casos_por_raca = df_raca.groupby("RACA_DESC").size().reset_index(name="casos")
 
         ordem_raca = ["Branca", "Preta", "Parda", "Amarela", "Indígena", "Sem informação"]
-        casos_por_raca["RACA_DESC"] = pd.Categorical(casos_por_raca["RACA_DESC"], categories=ordem_raca, ordered=True)
+        casos_por_raca["RACA_DESC"] = pd.Categorical(
+            casos_por_raca["RACA_DESC"],
+            categories=ordem_raca,
+            ordered=True
+        )
         casos_por_raca = casos_por_raca.sort_values("RACA_DESC")
 
         fig_raca = px.bar(
@@ -96,7 +106,11 @@ if arquivo is not None:
             color="RACA_DESC",
             template="plotly_white"
         )
-        fig_raca.update_layout(xaxis_title="Raça", yaxis_title="Número de casos", showlegend=False)
+        fig_raca.update_layout(
+            xaxis_title="Raça",
+            yaxis_title="Número de casos",
+            showlegend=False
+        )
         st.plotly_chart(fig_raca, use_container_width=True)
 
         st.subheader("Heatmap de casos por mês (2007-2023)")
