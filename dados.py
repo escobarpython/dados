@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 st.set_page_config(page_title="Análise de internações", layout="wide")
 
 st.title("Análise de internações por pneumonia")
-st.markdown("Feito por Pedro Escobar para o Programa de Iniciacao Cientifica Junior da PUCRS - 2025")
+st.markdown("feito por Pedro Escobar para o Programa de Iniciação Científica Júnior da PUCRS 2025")
 
 arquivo = st.file_uploader("Envie o arquivo pneumonia.csv", type=["csv"])
 
