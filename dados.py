@@ -120,22 +120,18 @@ if arquivo is not None:
         casos_por_raca = df_raca.groupby("RACA_DESC").size().reset_index(name="casos")
 
         ordem_raca = ["Branca", "Preta", "Parda", "Amarela", "Indígena", "Sem informação"]
-        casos_por_raca["RACA_DESC"] = pd.Categorical(
-            casos_por_raca["RACA_DESC"],
-            categories=ordem_raca,
-            ordered=True
-        )
+        casos_por_raca["RACA_DESC"] = pd.Categorical(casos_por_raca["RACA_DESC"], categories=ordem_raca, ordered=True)
         casos_por_raca = casos_por_raca.sort_values("RACA_DESC")
 
         fig_raca = px.bar(
             casos_por_raca,
             x="RACA_DESC",
             y="casos",
-            color="RACA_DESC",
             title="Número de casos por raça",
+            color="RACA_DESC",
             template="plotly_white"
         )
-        fig_raca.update_layout(showlegend=False)
+        fig_raca.update_layout(xaxis_title="Raça", yaxis_title="Número de casos", showlegend=False)
         st.plotly_chart(fig_raca, use_container_width=True)
 
         st.subheader("Heatmap de casos por mês (2007-2023)")
@@ -175,16 +171,75 @@ if arquivo is not None:
                         [1.0, "#0f3d1c"]
                     ],
                     showscale=True,
-                    hovertemplate="Mês: %{x}<br>Casos: %{z}<extra></extra>"
+                    hoverongaps=False,
+                    hovertemplate="Mês: %{x}<br>Casos: %{z}<extra></extra>",
+                    colorbar=dict(title="Casos")
                 ))
-
                 fig_heat.update_layout(
                     title=f"Casos de Pneumonia - {ano}",
+                    xaxis=dict(title="", side="bottom"),
+                    yaxis=dict(title="", showticklabels=False),
                     height=150,
+                    margin=dict(l=40, r=40, t=60, b=40),
                     template="plotly_white"
                 )
-
                 st.plotly_chart(fig_heat, use_container_width=True)
+        else:
+            st.warning("A coluna DT_INTER não foi encontrada no arquivo. O heatmap por ano não pôde ser gerado.")
+
+        st.subheader("Pirâmide etária de casos por sexo")
+
+        df_sexo = df.copy()
+        df_sexo["SEXO_CAT"] = (
+            df_sexo["SEXO"]
+            .astype(str)
+            .str.strip()
+            .str.upper()
+            .map({
+                "M": "Homem",
+                "MASCULINO": "Homem",
+                "1": "Homem",
+                "F": "Mulher",
+                "FEMININO": "Mulher",
+                "3": "Mulher"
+            })
+        )
+
+        df_sexo = df_sexo.dropna(subset=["IDADE", "SEXO_CAT"])
+
+        df_sexo["faixa"] = pd.cut(
+            df_sexo["IDADE"],
+            bins=list(range(0, 105, 5)) + [200],
+            labels=[f"{i}-{i+4}" for i in range(0, 100, 5)] + ["100+"],
+            right=False
+        )
+
+        piramide_total = df_sexo.groupby(["faixa", "SEXO_CAT"]).size().reset_index(name="casos")
+
+        piramide_homem_total = piramide_total[piramide_total["SEXO_CAT"] == "Homem"].copy()
+        piramide_mulher_total = piramide_total[piramide_total["SEXO_CAT"] == "Mulher"].copy()
+        piramide_homem_total["casos_neg"] = -piramide_homem_total["casos"]
+
+        fig_piramide_total = go.Figure()
+        fig_piramide_total.add_trace(go.Bar(y=piramide_homem_total["faixa"], x=piramide_homem_total["casos_neg"], name="Homem", orientation="h", marker_color="#1f77b4"))
+        fig_piramide_total.add_trace(go.Bar(y=piramide_mulher_total["faixa"], x=piramide_mulher_total["casos"], name="Mulher", orientation="h", marker_color="#e377c2"))
+        fig_piramide_total.update_layout(title="Pirâmide etária de casos por sexo", barmode="overlay", xaxis_title="Número de casos", yaxis_title="Faixa etária", template="plotly_white")
+        st.plotly_chart(fig_piramide_total, use_container_width=True)
+
+        st.subheader("Pirâmide etária de óbitos por sexo")
+
+        df_obito_sexo = df_sexo[df_sexo["obito"] == 1].copy()
+        piramide_obito = df_obito_sexo.groupby(["faixa", "SEXO_CAT"]).size().reset_index(name="casos")
+
+        piramide_homem_obito = piramide_obito[piramide_obito["SEXO_CAT"] == "Homem"].copy()
+        piramide_mulher_obito = piramide_obito[piramide_obito["SEXO_CAT"] == "Mulher"].copy()
+        piramide_homem_obito["casos_neg"] = -piramide_homem_obito["casos"]
+
+        fig_piramide_obito = go.Figure()
+        fig_piramide_obito.add_trace(go.Bar(y=piramide_homem_obito["faixa"], x=piramide_homem_obito["casos_neg"], name="Homem", orientation="h", marker_color="#1f77b4"))
+        fig_piramide_obito.add_trace(go.Bar(y=piramide_mulher_obito["faixa"], x=piramide_mulher_obito["casos"], name="Mulher", orientation="h", marker_color="#e377c2"))
+        fig_piramide_obito.update_layout(title="Pirâmide etária de óbitos por sexo", barmode="overlay", xaxis_title="Número de óbitos", yaxis_title="Faixa etária", template="plotly_white")
+        st.plotly_chart(fig_piramide_obito, use_container_width=True)
 
 else:
     st.info("Envie o arquivo pneumonia.csv para iniciar a análise.")
