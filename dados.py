@@ -93,7 +93,7 @@ if arquivo is not None:
         fig_raca.update_layout(xaxis_title="Raça", yaxis_title="Número de casos", showlegend=False)
         st.plotly_chart(fig_raca, use_container_width=True)
 
-        st.subheader("Heatmap de casos por mês (2007-2023)")
+    st.subheader("Heatmap de casos por mês (2007-2023)")
 
 if "DT_INTER" in df.columns:
     df_dt = df.copy()
