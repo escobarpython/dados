@@ -48,10 +48,11 @@ if arquivo is not None:
 
         with col2:
             fig_obitos_disp = px.scatter(
-                df_obitos,
+                df,
                 x="IDADE",
                 y="obito",
                 title="Dispersão de óbitos por idade",
+                opacity=0.3,
                 template="plotly_white"
             )
             st.plotly_chart(fig_obitos_disp, use_container_width=True)
