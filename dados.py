@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 st.set_page_config(page_title="Análise de internações", layout="wide")
 
 st.title("Análise de internações por pneumonia")
+st.markdown("Feito por Pedro Escobar para o Programa de Iniciacao Cientifica Junior da PUCRS - 2025")
 
 arquivo = st.file_uploader("Envie o arquivo pneumonia.csv", type=["csv"])
 
@@ -35,11 +36,24 @@ if arquivo is not None:
         col1, col2 = st.columns(2)
 
         with col1:
-            fig_obitos = px.line(df_obitos, x="IDADE", y="obito", title="Quantidade de óbitos por idade")
+            fig_obitos = px.line(
+                df_obitos,
+                x="IDADE",
+                y="obito",
+                title="Quantidade de óbitos por idade",
+                markers=True,
+                template="plotly_white"
+            )
             st.plotly_chart(fig_obitos, use_container_width=True)
 
         with col2:
-            fig_obitos_disp = px.scatter(df_obitos, x="IDADE", y="obito", title="Dispersão de óbitos por idade")
+            fig_obitos_disp = px.scatter(
+                df_obitos,
+                x="IDADE",
+                y="obito",
+                title="Dispersão de óbitos por idade",
+                template="plotly_white"
+            )
             st.plotly_chart(fig_obitos_disp, use_container_width=True)
 
         st.subheader("Gráfico de barras por raça")
@@ -68,8 +82,15 @@ if arquivo is not None:
         casos_por_raca["RACA_DESC"] = pd.Categorical(casos_por_raca["RACA_DESC"], categories=ordem_raca, ordered=True)
         casos_por_raca = casos_por_raca.sort_values("RACA_DESC")
 
-        fig_raca = px.bar(casos_por_raca, x="RACA_DESC", y="casos", title="Número de casos por raça")
-        fig_raca.update_layout(xaxis_title="Raça", yaxis_title="Número de casos")
+        fig_raca = px.bar(
+            casos_por_raca,
+            x="RACA_DESC",
+            y="casos",
+            title="Número de casos por raça",
+            color="RACA_DESC",
+            template="plotly_white"
+        )
+        fig_raca.update_layout(xaxis_title="Raça", yaxis_title="Número de casos", showlegend=False)
         st.plotly_chart(fig_raca, use_container_width=True)
 
         st.subheader("Heatmap de casos por mês (2007-2023)")
@@ -98,7 +119,7 @@ if arquivo is not None:
                     z=[df_completo["casos"].values],
                     x=df_completo["mes_nome"],
                     y=[""],
-                    colorscale="Greens",
+                    colorscale="Turbo",
                     showscale=True,
                     hoverongaps=False,
                     hovertemplate="Mês: %{x}<br>Casos: %{z}<extra></extra>",
@@ -109,8 +130,9 @@ if arquivo is not None:
                     title=f"Casos de Pneumonia - {ano}",
                     xaxis=dict(title="", side="bottom"),
                     yaxis=dict(title="", showticklabels=False),
-                    height=150,
-                    margin=dict(l=50, r=50, t=50, b=50)
+                    height=160,
+                    margin=dict(l=40, r=40, t=60, b=40),
+                    template="plotly_white"
                 )
 
                 st.plotly_chart(fig_heat, use_container_width=True)
@@ -151,9 +173,9 @@ if arquivo is not None:
         piramide_homem_total["casos_neg"] = -piramide_homem_total["casos"]
 
         fig_piramide_total = go.Figure()
-        fig_piramide_total.add_trace(go.Bar(y=piramide_homem_total["faixa"], x=piramide_homem_total["casos_neg"], name="Homem", orientation="h"))
-        fig_piramide_total.add_trace(go.Bar(y=piramide_mulher_total["faixa"], x=piramide_mulher_total["casos"], name="Mulher", orientation="h"))
-        fig_piramide_total.update_layout(title="Pirâmide etária de casos por sexo", barmode="overlay", xaxis_title="Número de casos", yaxis_title="Faixa etária")
+        fig_piramide_total.add_trace(go.Bar(y=piramide_homem_total["faixa"], x=piramide_homem_total["casos_neg"], name="Homem", orientation="h", marker_color="#1f77b4"))
+        fig_piramide_total.add_trace(go.Bar(y=piramide_mulher_total["faixa"], x=piramide_mulher_total["casos"], name="Mulher", orientation="h", marker_color="#e377c2"))
+        fig_piramide_total.update_layout(title="Pirâmide etária de casos por sexo", barmode="overlay", xaxis_title="Número de casos", yaxis_title="Faixa etária", template="plotly_white")
         st.plotly_chart(fig_piramide_total, use_container_width=True)
 
         st.subheader("Pirâmide etária de óbitos por sexo")
@@ -166,11 +188,10 @@ if arquivo is not None:
         piramide_homem_obito["casos_neg"] = -piramide_homem_obito["casos"]
 
         fig_piramide_obito = go.Figure()
-        fig_piramide_obito.add_trace(go.Bar(y=piramide_homem_obito["faixa"], x=piramide_homem_obito["casos_neg"], name="Homem", orientation="h"))
-        fig_piramide_obito.add_trace(go.Bar(y=piramide_mulher_obito["faixa"], x=piramide_mulher_obito["casos"], name="Mulher", orientation="h"))
-        fig_piramide_obito.update_layout(title="Pirâmide etária de óbitos por sexo", barmode="overlay", xaxis_title="Número de óbitos", yaxis_title="Faixa etária")
+        fig_piramide_obito.add_trace(go.Bar(y=piramide_homem_obito["faixa"], x=piramide_homem_obito["casos_neg"], name="Homem", orientation="h", marker_color="#1f77b4"))
+        fig_piramide_obito.add_trace(go.Bar(y=piramide_mulher_obito["faixa"], x=piramide_mulher_obito["casos"], name="Mulher", orientation="h", marker_color="#e377c2"))
+        fig_piramide_obito.update_layout(title="Pirâmide etária de óbitos por sexo", barmode="overlay", xaxis_title="Número de óbitos", yaxis_title="Faixa etária", template="plotly_white")
         st.plotly_chart(fig_piramide_obito, use_container_width=True)
 
 else:
     st.info("Envie o arquivo pneumonia.csv para iniciar a análise.")
-
