@@ -95,49 +95,59 @@ if arquivo is not None:
 
         st.subheader("Heatmap de casos por mês (2007-2023)")
 
-        if "DT_INTER" in df.columns:
-            df_dt = df.copy()
-            df_dt["DT_INTER"] = pd.to_datetime(df_dt["DT_INTER"], errors="coerce")
-            df_dt = df_dt.dropna(subset=["DT_INTER"])
+if "DT_INTER" in df.columns:
+    df_dt = df.copy()
+    df_dt["DT_INTER"] = pd.to_datetime(df_dt["DT_INTER"], errors="coerce")
+    df_dt = df_dt.dropna(subset=["DT_INTER"])
 
-            df_dt["ano"] = df_dt["DT_INTER"].dt.year
-            df_dt["mes"] = df_dt["DT_INTER"].dt.month
+    df_dt["ano"] = df_dt["DT_INTER"].dt.year
+    df_dt["mes"] = df_dt["DT_INTER"].dt.month
 
-            meses_nomes = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-            anos_disponiveis = sorted(df_dt["ano"].unique())
+    meses_nomes = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
-            for ano in anos_disponiveis:
-                df_ano = df_dt[df_dt["ano"] == ano].copy()
-                casos_por_mes = df_ano.groupby("mes").size().reset_index(name="casos")
+    anos_disponiveis = sorted(df_dt["ano"].unique())
 
-                df_completo = pd.DataFrame({"mes": range(1, 13)})
-                df_completo = df_completo.merge(casos_por_mes, on="mes", how="left")
-                df_completo["casos"] = df_completo["casos"].fillna(0)
-                df_completo["mes_nome"] = df_completo["mes"].apply(lambda x: meses_nomes[x - 1])
+    for ano in anos_disponiveis:
+        df_ano = df_dt[df_dt["ano"] == ano].copy()
+        casos_por_mes = df_ano.groupby("mes").size().reset_index(name="casos")
 
-                fig_heat = go.Figure(data=go.Heatmap(
-                    z=[df_completo["casos"].values],
-                    x=df_completo["mes_nome"],
-                    y=[""],
-                    colorscale="Turbo",
-                    showscale=True,
-                    hoverongaps=False,
-                    hovertemplate="Mês: %{x}<br>Casos: %{z}<extra></extra>",
-                    colorbar=dict(title="Casos")
-                ))
+        df_completo = pd.DataFrame({"mes": range(1, 13)})
+        df_completo = df_completo.merge(casos_por_mes, on="mes", how="left")
+        df_completo["casos"] = df_completo["casos"].fillna(0)
+        df_completo["mes_nome"] = df_completo["mes"].apply(lambda x: meses_nomes[x - 1])
 
-                fig_heat.update_layout(
-                    title=f"Casos de Pneumonia - {ano}",
-                    xaxis=dict(title="", side="bottom"),
-                    yaxis=dict(title="", showticklabels=False),
-                    height=160,
-                    margin=dict(l=40, r=40, t=60, b=40),
-                    template="plotly_white"
-                )
+        fig_heat = go.Figure(data=go.Heatmap(
+            z=[df_completo["casos"].values],
+            x=df_completo["mes_nome"],
+            y=[""],
+            colorscale=[
+                [0.0, "#ebedf0"],
+                [0.2, "#c6e48b"],
+                [0.4, "#7bc96f"],
+                [0.6, "#239a3b"],
+                [0.8, "#196127"],
+                [1.0, "#0f3d1c"]
+            ],
+            showscale=True,
+            hoverongaps=False,
+            hovertemplate="Mês: %{x}<br>Casos: %{z}<extra></extra>",
+            colorbar=dict(title="Casos")
+        ))
 
-                st.plotly_chart(fig_heat, use_container_width=True)
-        else:
-            st.warning("A coluna DT_INTER não foi encontrada no arquivo. O heatmap por ano não pôde ser gerado.")
+        fig_heat.update_layout(
+            title=f"Casos de Pneumonia - {ano}",
+            xaxis=dict(title="", side="bottom"),
+            yaxis=dict(title="", showticklabels=False),
+            height=150,
+            margin=dict(l=40, r=40, t=60, b=40),
+            template="plotly_white"
+        )
+
+        st.plotly_chart(fig_heat, use_container_width=True)
+else:
+    st.warning("A coluna DT_INTER não foi encontrada no arquivo. O heatmap por ano não pôde ser gerado.")
+
 
         st.subheader("Pirâmide etária de casos por sexo")
 
