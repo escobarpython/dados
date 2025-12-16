@@ -3,9 +3,9 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="Análise de internações", layout="wide")
+st.set_page_config(page_title="Análise de Dados Hospitalares", layout="wide")
 
-st.title("Análise de internações por pneumonia")
+st.title("Análise de Dados Hospitalares: Visualização Interativa e Modelos Preditivos para Suporte à Gestão em Saúde")
 st.markdown("feito por Pedro Escobar para o Programa de Iniciação Científica Júnior da PUCRS 2025")
 
 arquivo = st.file_uploader("Envie o arquivo pneumonia.csv", type=["csv"])
