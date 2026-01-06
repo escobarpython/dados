@@ -1,7 +1,11 @@
-import streamlit as st
+import json
+import os
+import urllib.request
+
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import streamlit as st
 
 st.set_page_config(page_title="Análise de Dados Hospitalares", layout="wide")
 
@@ -9,6 +13,97 @@ st.title("Análise de Dados Hospitalares: Visualização Interativa e Modelos Pr
 st.markdown("feito por Pedro Escobar para o Programa de Iniciação Científica Júnior da PUCRS 2025")
 
 arquivo = st.file_uploader("Envie o arquivo pneumonia.csv", type=["csv"])
+
+def _groq_chat(api_key, model, messages, temperature=0.2, max_tokens=512):
+    payload = {
+        "model": model,
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        "https://api.groq.com/openai/v1/chat/completions",
+        data=data,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        body = resp.read()
+    result = json.loads(body.decode("utf-8"))
+    return result["choices"][0]["message"]["content"]
+
+
+def _summarize_insights(df, df_obitos, df_obito_faixa, casos_por_raca, df_dt):
+    total = len(df)
+    obitos_total = int(df["obito"].sum()) if "obito" in df.columns else 0
+    taxa_obito = (obitos_total / total) * 100 if total else 0
+
+    idade_min = int(df["IDADE"].min()) if not df["IDADE"].empty else None
+    idade_max = int(df["IDADE"].max()) if not df["IDADE"].empty else None
+    idade_mediana = float(df["IDADE"].median()) if not df["IDADE"].empty else None
+
+    faixa_top = None
+    if df_obito_faixa is not None and not df_obito_faixa.empty:
+        faixa_counts = (
+            df_obito_faixa.groupby("faixa")
+            .size()
+            .reset_index(name="obitos")
+            .sort_values("obitos", ascending=False)
+        )
+        faixa_top = faixa_counts.iloc[0]["faixa"]
+
+    casos_raca_top = None
+    if casos_por_raca is not None and not casos_por_raca.empty:
+        casos_raca_top = (
+            casos_por_raca.sort_values("casos", ascending=False)
+            .iloc[0]["RACA_DESC"]
+        )
+
+    casos_por_sexo = {}
+    if "SEXO_CAT" in df.columns:
+        casos_por_sexo = (
+            df["SEXO_CAT"]
+            .value_counts(dropna=True)
+            .to_dict()
+        )
+
+    obitos_por_sexo = {}
+    if "SEXO_CAT" in df.columns and "obito" in df.columns:
+        obitos_por_sexo = (
+            df[df["obito"] == 1]["SEXO_CAT"]
+            .value_counts(dropna=True)
+            .to_dict()
+        )
+
+    ano_top = None
+    mes_top = None
+    if df_dt is not None and not df_dt.empty:
+        casos_por_ano = df_dt.groupby("ano").size().reset_index(name="casos")
+        if not casos_por_ano.empty:
+            ano_top = int(casos_por_ano.sort_values("casos", ascending=False).iloc[0]["ano"])
+        casos_por_mes = df_dt.groupby("mes").size().reset_index(name="casos")
+        if not casos_por_mes.empty:
+            mes_top = int(casos_por_mes.sort_values("casos", ascending=False).iloc[0]["mes"])
+
+    return {
+        "total_registros": total,
+        "obitos_total": obitos_total,
+        "taxa_obito_percentual": round(taxa_obito, 2),
+        "idade_min": idade_min,
+        "idade_max": idade_max,
+        "idade_mediana": round(idade_mediana, 2) if idade_mediana is not None else None,
+        "faixa_etaria_mais_obitos": str(faixa_top) if faixa_top is not None else None,
+        "raca_mais_casos": str(casos_raca_top) if casos_raca_top is not None else None,
+        "casos_por_sexo": casos_por_sexo,
+        "obitos_por_sexo": obitos_por_sexo,
+        "ano_com_mais_casos": ano_top,
+        "mes_com_mais_casos": mes_top,
+    }
+
 
 if arquivo is not None:
     df = pd.read_csv(arquivo, sep=",", encoding="latin1")
@@ -28,8 +123,25 @@ if arquivo is not None:
 
         df = df.dropna(subset=["IDADE"])
         df = df.sort_values("IDADE")
+        df["SEXO_CAT"] = (
+            df["SEXO"]
+            .astype(str)
+            .str.strip()
+            .str.upper()
+            .map({
+                "M": "Homem",
+                "MASCULINO": "Homem",
+                "1": "Homem",
+                "F": "Mulher",
+                "FEMININO": "Mulher",
+                "3": "Mulher"
+            })
+        )
 
         df_obitos = df.groupby("IDADE")["obito"].sum().reset_index()
+        df_obito_faixa = None
+        casos_por_raca = None
+        df_dt = None
 
         st.subheader("Óbitos por idade")
 
@@ -48,23 +160,7 @@ if arquivo is not None:
             st.plotly_chart(fig_obitos, use_container_width=True)
 
         with col2:
-            df_sexo = df.copy()
-            df_sexo["SEXO_CAT"] = (
-                df_sexo["SEXO"]
-                .astype(str)
-                .str.strip()
-                .str.upper()
-                .map({
-                    "M": "Homem",
-                    "MASCULINO": "Homem",
-                    "1": "Homem",
-                    "F": "Mulher",
-                    "FEMININO": "Mulher",
-                    "3": "Mulher"
-                })
-            )
-
-            df_sexo = df_sexo.dropna(subset=["SEXO_CAT"])
+            df_sexo = df.dropna(subset=["SEXO_CAT"]).copy()
 
             df_sexo["faixa"] = pd.cut(
                 df_sexo["IDADE"],
@@ -189,23 +285,7 @@ if arquivo is not None:
 
         st.subheader("Pirâmide etária de casos por sexo")
 
-        df_sexo = df.copy()
-        df_sexo["SEXO_CAT"] = (
-            df_sexo["SEXO"]
-            .astype(str)
-            .str.strip()
-            .str.upper()
-            .map({
-                "M": "Homem",
-                "MASCULINO": "Homem",
-                "1": "Homem",
-                "F": "Mulher",
-                "FEMININO": "Mulher",
-                "3": "Mulher"
-            })
-        )
-
-        df_sexo = df_sexo.dropna(subset=["IDADE", "SEXO_CAT"])
+        df_sexo = df.dropna(subset=["IDADE", "SEXO_CAT"]).copy()
 
         df_sexo["faixa"] = pd.cut(
             df_sexo["IDADE"],
@@ -240,6 +320,52 @@ if arquivo is not None:
         fig_piramide_obito.add_trace(go.Bar(y=piramide_mulher_obito["faixa"], x=piramide_mulher_obito["casos"], name="Mulher", orientation="h", marker_color="#e377c2"))
         fig_piramide_obito.update_layout(title="Pirâmide etária de óbitos por sexo", barmode="overlay", xaxis_title="Número de óbitos", yaxis_title="Faixa etária", template="plotly_white")
         st.plotly_chart(fig_piramide_obito, use_container_width=True)
+
+        st.subheader("Leitura automatizada dos gráficos (Groq)")
+
+        col_ai1, col_ai2 = st.columns([2, 1])
+        with col_ai1:
+            st.caption("A chave sera lida de st.secrets ou da variavel GROQ_API_KEY.")
+            user_focus = st.text_area(
+                "Se quiser, descreva o foco da análise (opcional)",
+                placeholder="Ex.: destaque diferenças por sexo e evolução temporal.",
+            )
+        with col_ai2:
+            model_name = st.text_input("Modelo", value="llama3-70b-8192")
+            max_tokens = st.number_input("Máx. tokens", min_value=128, max_value=2048, value=512, step=64)
+            temp = st.slider("Temperatura", min_value=0.0, max_value=1.0, value=0.2, step=0.05)
+
+        if st.button("Gerar leitura com Groq"):
+            api_key = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY")
+            if not api_key:
+                st.error("Defina GROQ_API_KEY em st.secrets ou como variavel de ambiente.")
+            else:
+                insights = _summarize_insights(df, df_obitos, df_obito_faixa, casos_por_raca, df_dt)
+                system_msg = (
+                    "Voce e um analista de dados em saude. "
+                    "Resuma os resultados com linguagem clara, objetiva e acionavel. "
+                    "Use PT-BR e formate em topicos curtos."
+                )
+                user_msg = {
+                    "objetivo": "Leitura dos graficos para Streamlit",
+                    "foco_usuario": user_focus or "Sem foco especifico",
+                    "metricas": insights,
+                }
+                try:
+                    resposta = _groq_chat(
+                        api_key=api_key,
+                        model=model_name,
+                        messages=[
+                            {"role": "system", "content": system_msg},
+                            {"role": "user", "content": json.dumps(user_msg, ensure_ascii=False)},
+                        ],
+                        temperature=temp,
+                        max_tokens=int(max_tokens),
+                    )
+                    st.markdown("**Resumo dos resultados**")
+                    st.markdown(resposta)
+                except Exception as exc:
+                    st.error(f"Erro ao consultar Groq: {exc}")
 
 else:
     st.info("Envie o arquivo pneumonia.csv para iniciar a análise.")
